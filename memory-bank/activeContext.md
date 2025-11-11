@@ -38,6 +38,15 @@ The project is ready to begin implementation. The recommended starting point is:
 
 ## Recent Changes
 
+### Implementation Updates (December 2024 - Latest)
+
+**Lambda Layer & Database Migration Fixes** (December 2024):
+- ✅ **Lambda Layer Optimization**: Reduced layer size from 94MB to 76MB compressed by removing unused packages (`effect`), source maps, tests, and optimizing Prisma binaries
+- ✅ **Database Migration Function**: Replaced Prisma CLI approach with programmatic SQL execution to avoid CLI dependency in Lambda layer
+- ✅ **Migration Verification**: All database tables, ENUMs, indexes, and foreign keys successfully created via Lambda function
+- ✅ **Seeding Verification**: Database seeding working correctly with proper existing data detection
+- ✅ **Layer Deployment**: Optimized layer successfully deployed and verified working with all Lambda functions
+
 ### Implementation Updates (December 2024)
 
 1. **Day 3 Backend Functions - COMPLETE**:
@@ -124,6 +133,17 @@ The project is ready to begin implementation. The recommended starting point is:
    - ✅ VPC access for Lambda to connect to RDS
    - ✅ Secrets Manager integration for database credentials
    - ✅ Complete seed data matching `prisma/seed.ts`
+   - ✅ **Migration function optimized**: Uses programmatic SQL instead of Prisma CLI (no CLI dependency needed)
+   - ✅ **Migration verified**: All tables, ENUMs, indexes, and foreign keys created successfully
+   - ✅ **Seeding verified**: Database seeding working correctly with existing data detection
+
+10. **Lambda Layer Optimization - COMPLETE** (December 2024):
+   - ✅ Layer size optimized: Reduced from 94MB to 76MB compressed (197MB uncompressed, under 250MB limit)
+   - ✅ Removed unused `effect` package (32MB saved)
+   - ✅ Removed source maps, test files, documentation, and TypeScript source files
+   - ✅ Prisma binaries optimized: Only Lambda-compatible `rhel-openssl-3.0.x` binaries kept
+   - ✅ Layer successfully deployed and verified working with all Lambda functions
+   - ✅ Build script enhanced with cleanup steps (`backend/layers/shared/build.sh`)
 
 ### Key Files Created/Modified
 
@@ -141,6 +161,15 @@ The project is ready to begin implementation. The recommended starting point is:
 - `backend/shared/email/ses-client.ts` - SES email client
 - `backend/shared/email/templates.ts` - Email templates (3 types)
 - `backend/shared/email/index.ts` - Email exports
+
+**Lambda Layer**:
+- `backend/layers/shared/` - Optimized Lambda layer (76MB compressed, 197MB uncompressed)
+- `backend/layers/shared/build.sh` - Build script with cleanup and optimization steps
+- `backend/layers/shared/package.json` - Layer dependencies (Prisma, AWS SDK, AI SDK, Zod, etc.)
+
+**Admin Functions**:
+- `backend/functions/admin/migrate/` - Database migration via programmatic SQL
+- `backend/functions/admin/seed/` - Database seeding with test data
 
 **Infrastructure**:
 - `infrastructure/lib/api-stack.ts` - Complete API Gateway + Lambda setup
@@ -242,10 +271,13 @@ flight-schedule-pro/
 1. **Database Connection**: Lambda must be in VPC to access RDS
 2. **Cognito Tokens**: Use ID token (not access token) for authorization
 3. **Next.js Export**: Must set `output: 'export'` in next.config.js
-4. **Lambda Layer**: Must be in `nodejs/node_modules/` directory
+4. **Lambda Layer**: Must be in `nodejs/node_modules/` directory, keep under 250MB uncompressed
 5. **CloudFront Caching**: Invalidate cache after frontend deployment
 6. **Environment Variables**: Set in Lambda AND pass to generateObject calls
 7. **Prisma Generate**: Run after every schema change
+8. **Lambda Layer Size**: Remove unused packages, source maps, tests to stay under 250MB limit
+9. **Database Migrations**: Use programmatic SQL in Lambda (Prisma CLI not available in layer)
+10. **PostgreSQL Raw SQL**: Execute each statement separately (cannot use multiple commands in one prepared statement)
 
 ## Success Criteria Checklist
 

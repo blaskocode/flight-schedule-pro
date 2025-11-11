@@ -37,16 +37,17 @@
 - [x] Secrets stack - ✅ Deployed
 - [x] Auth stack (Cognito) - ✅ Deployed
 - [x] API stack (API Gateway, Lambda, EventBridge) - ✅ Complete with all Lambda functions
-- [x] Database migrations - ✅ Lambda function created
-- [x] Database seeding - ✅ Lambda function created
+- [x] Database migrations - ✅ Lambda function created and verified working
+- [x] Database seeding - ✅ Lambda function created and verified working
+- [x] Lambda layer - ✅ Optimized and deployed (76MB compressed, under 250MB limit)
 - [ ] Frontend stack (S3, CloudFront) - CDK code ready, needs deployment
 
 ### Backend (100% - Complete ✅)
 
 - [x] Prisma schema implementation ✅
-- [x] Database migrations ✅ (via Lambda with VPC access)
+- [x] Database migrations ✅ (via Lambda with VPC access, programmatic SQL)
 - [x] Seed script ✅
-- [x] Lambda layer build ✅
+- [x] Lambda layer build ✅ (optimized: 76MB compressed, 197MB uncompressed)
 - [x] Weather utilities ✅
 - [x] AI utilities (Vercel AI SDK integration) ✅
 - [x] Weather check Lambda ✅
@@ -55,6 +56,8 @@
 - [x] Flight CRUD Lambdas ✅
 - [x] Email notification system ✅
 - [x] Reschedule confirmation endpoints ✅
+- [x] Admin migration Lambda ✅ (verified: all tables created successfully)
+- [x] Admin seed Lambda ✅ (verified: seeding working with data detection)
 
 ### Frontend (100% - Complete ✅)
 
@@ -131,6 +134,12 @@
 ## Known Issues
 
 **None** - All gaps have been resolved in documentation.
+
+**Recent Fixes** (December 2024):
+- ✅ Lambda layer size issue resolved (optimized from 94MB to 76MB compressed)
+- ✅ Database migration function fixed (replaced Prisma CLI with programmatic SQL)
+- ✅ All database tables verified created successfully
+- ✅ Database seeding verified working correctly
 
 ## Blockers
 

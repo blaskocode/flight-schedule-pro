@@ -197,19 +197,29 @@ NEXT_PUBLIC_AWS_REGION="us-east-1"
 
 ### Backend Dependencies (Lambda Layer)
 
+**Layer Optimization** (December 2024):
+- **Size**: 76MB compressed, 197MB uncompressed (under 250MB Lambda limit)
+- **Optimization Steps**: 
+  - Removed unused `effect` package (32MB saved)
+  - Removed source maps, test files, documentation, TypeScript source files
+  - Prisma binaries optimized: Only `rhel-openssl-3.0.x` binaries kept for Lambda compatibility
+- **Build Script**: `backend/layers/shared/build.sh` includes cleanup and optimization steps
+- **Dependencies**: Prisma Client, AWS SDK (SES, Secrets Manager), Vercel AI SDK, Zod, ioredis, metar-taf-parser
+
 ```json
 {
-  "@prisma/client": "^5.x",
-  "prisma": "^5.x",
-  "@aws-sdk/client-ses": "^3.x",
-  "@aws-sdk/client-secrets-manager": "^3.x",
-  "ai": "^3.x",
-  "@ai-sdk/openai": "^1.x",
-  "zod": "^3.x",
-  "ioredis": "^5.x",
-  "metar-taf-parser": "^1.x"
+  "@prisma/client": "^6.19.0",
+  "@aws-sdk/client-ses": "^3.928.0",
+  "@aws-sdk/client-secrets-manager": "^3.928.0",
+  "ai": "^3.4.0",
+  "@ai-sdk/openai": "^1.0.0",
+  "zod": "^3.23.8",
+  "ioredis": "^5.4.1",
+  "metar-taf-parser": "^1.0.0"
 }
 ```
+
+**Note**: Prisma CLI (`prisma` package) is NOT included in the layer - migrations use programmatic SQL instead.
 
 ### Infrastructure Dependencies
 
@@ -259,7 +269,7 @@ NEXT_PUBLIC_AWS_REGION="us-east-1"
 ```prisma
 generator client {
   provider = "prisma-client-js"
-  binaryTargets = ["native", "rhel-openssl-1.0.x"]  // Lambda compatibility
+  binaryTargets = ["native", "rhel-openssl-1.0.x", "rhel-openssl-3.0.x"]  // Lambda compatibility
 }
 
 datasource db {
@@ -267,6 +277,20 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 ```
+
+### Database Migrations
+
+**Migration Approach** (December 2024):
+- **Method**: Programmatic SQL execution via Lambda function (no Prisma CLI dependency)
+- **Location**: `backend/functions/admin/migrate/index.ts`
+- **Why**: Prisma CLI not available in Lambda layer, so migrations use raw SQL via Prisma Client's `$executeRawUnsafe`
+- **Process**: 
+  1. Creates ENUM types (TrainingLevel, FlightStatus, WeatherSafety, RescheduleStatus)
+  2. Creates all tables with proper constraints
+  3. Creates indexes for performance
+  4. Adds foreign key constraints
+  5. Verifies all required tables exist before skipping
+- **PostgreSQL Note**: Each SQL statement must be executed separately (cannot combine multiple commands in one prepared statement)
 
 ### Tables (7 total)
 
