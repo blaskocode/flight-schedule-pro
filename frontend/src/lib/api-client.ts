@@ -28,7 +28,11 @@ async function apiRequest<T>(
     throw new Error('Not authenticated. Please sign in.');
   }
 
-  const url = `${API_BASE_URL}${endpoint}`;
+  // Normalize URL: remove trailing slash from base URL and ensure endpoint starts with /
+  const baseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
+  const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const url = `${baseUrl}${normalizedEndpoint}`;
+  
   const response = await fetch(url, {
     ...options,
     headers: {
