@@ -32,6 +32,27 @@ export class FrontendStack extends cdk.Stack {
     // Grant CloudFront read access to bucket
     bucket.grantRead(originAccessIdentity);
 
+    // CloudFront Function to handle SPA routing
+    const rewriteFunction = new cloudfront.Function(this, 'RewriteFunction', {
+      code: cloudfront.FunctionCode.fromInline(`
+function handler(event) {
+    var request = event.request;
+    var uri = request.uri;
+    
+    // If the URI ends with a slash, try to serve index.html from that directory
+    if (uri.endsWith('/')) {
+        request.uri = uri + 'index.html';
+    }
+    // If the URI doesn't have an extension, try to serve it as a directory with index.html
+    else if (!uri.includes('.')) {
+        request.uri = uri + '/index.html';
+    }
+    
+    return request;
+}
+      `.trim()),
+    });
+
     // CloudFront distribution
     const distribution = new cloudfront.Distribution(this, 'Distribution', {
       defaultBehavior: {
@@ -41,6 +62,12 @@ export class FrontendStack extends cdk.Stack {
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
         cachedMethods: cloudfront.CachedMethods.CACHE_GET_HEAD,
+        functionAssociations: [
+          {
+            function: rewriteFunction,
+            eventType: cloudfront.FunctionEventType.VIEWER_REQUEST,
+          },
+        ],
       },
       defaultRootObject: 'index.html',
       errorResponses: [
@@ -68,8 +95,16 @@ export class FrontendStack extends cdk.Stack {
       value: distribution.distributionId,
     });
 
+    const distributionUrl = `https://${distribution.distributionDomainName}`;
     new cdk.CfnOutput(this, 'DistributionUrl', {
-      value: `https://${distribution.distributionDomainName}`,
+      value: distributionUrl,
+    });
+
+    // Export CloudFront URL for API stack CORS configuration
+    new cdk.CfnOutput(this, 'FrontendOrigin', {
+      value: distributionUrl,
+      exportName: 'FSP-FrontendOrigin',
+      description: 'CloudFront distribution URL for CORS configuration',
     });
   }
 }

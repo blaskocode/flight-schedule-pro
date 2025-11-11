@@ -30,6 +30,10 @@ const authStack = new AuthStack(app, 'FlightSchedulePro-Auth', {
   env,
 });
 
+// Get frontend origin from context (can be set via: cdk deploy --context frontendOrigin=https://...)
+// This is needed for CORS configuration when allowCredentials is true
+const frontendOrigin = app.node.tryGetContext('frontendOrigin');
+
 // API Stack (API Gateway, Lambda, EventBridge)
 const apiStack = new ApiStack(app, 'FlightSchedulePro-Api', {
   env,
@@ -40,6 +44,7 @@ const apiStack = new ApiStack(app, 'FlightSchedulePro-Api', {
   lambdaSecurityGroup: databaseStack.lambdaSecurityGroup,
   userPool: authStack.userPool,
   secrets: secretsStack,
+  frontendOrigin, // Pass CloudFront URL for CORS if available
 });
 
 // Frontend Stack (S3, CloudFront)

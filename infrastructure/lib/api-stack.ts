@@ -20,6 +20,7 @@ export interface ApiStackProps extends cdk.StackProps {
   lambdaSecurityGroup: ec2.ISecurityGroup;
   userPool: cognito.IUserPool;
   secrets: SecretsStack;
+  frontendOrigin?: string; // Optional CloudFront origin URL for CORS
 }
 
 export class ApiStack extends cdk.Stack {
@@ -202,6 +203,29 @@ export class ApiStack extends cdk.Stack {
       cognitoUserPools: [userPool],
     });
 
+    // Determine allowed origins for CORS
+    // When allowCredentials is true, we cannot use ALL_ORIGINS
+    // We need to specify the exact origin(s)
+    // Priority: 1) frontendOrigin prop, 2) context variable, 3) CloudFormation import (if available)
+    let allowedOrigins: string[];
+    
+    if (props.frontendOrigin) {
+      // Use explicitly provided origin
+      allowedOrigins = [props.frontendOrigin];
+    } else {
+      // Try to get from context (can be set via: cdk deploy --context frontendOrigin=https://...)
+      const contextOrigin = this.node.tryGetContext('frontendOrigin');
+      if (contextOrigin) {
+        allowedOrigins = [contextOrigin];
+      } else {
+        // Try to import from FrontendStack export (if frontend is already deployed)
+        // This will work if the frontend stack has been deployed and exported the value
+        // If not, the deployment will fail and you'll need to provide the origin via context
+        const frontendOrigin = cdk.Fn.importValue('FSP-FrontendOrigin');
+        allowedOrigins = [frontendOrigin];
+      }
+    }
+
     // API Gateway
     this.api = new apigateway.RestApi(this, 'FSP-API', {
       restApiName: 'Flight Schedule Pro API',
@@ -214,7 +238,7 @@ export class ApiStack extends cdk.Stack {
         dataTraceEnabled: true,
       },
       defaultCorsPreflightOptions: {
-        allowOrigins: apigateway.Cors.ALL_ORIGINS,
+        allowOrigins: allowedOrigins,
         allowMethods: apigateway.Cors.ALL_METHODS,
         allowHeaders: ['Content-Type', 'Authorization', 'X-Amz-Date', 'X-Api-Key', 'X-Amz-Security-Token'],
         allowCredentials: true,

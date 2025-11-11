@@ -29,11 +29,21 @@ function DashboardContent() {
   async function loadFlights() {
     try {
       setLoading(true);
-      const response = await api.getFlights();
-      setFlights(response.flights);
       setError('');
+      const response = await api.getFlights();
+      // Handle empty flights array gracefully - this is not an error
+      setFlights(response.flights || []);
     } catch (err: any) {
-      setError(err.message || 'Failed to load flights');
+      // Only show error if it's not an empty result
+      const errorMessage = err.message || 'Failed to load flights';
+      // Check if it's a network/CORS error vs. a real API error
+      if (errorMessage.includes('Network error') || errorMessage.includes('CORS error')) {
+        setError(errorMessage);
+      } else {
+        // For other errors, still show them but allow empty state to show if flights array is empty
+        setError(errorMessage);
+        setFlights([]); // Set empty array so empty state can show
+      }
     } finally {
       setLoading(false);
     }
@@ -128,9 +138,29 @@ function DashboardContent() {
           </div>
         )}
 
-        {flights.length === 0 ? (
+        {flights.length === 0 && !error ? (
           <div className="bg-white rounded-lg shadow p-8 text-center">
-            <p className="text-aviation-cloud-600">No flights found.</p>
+            <div className="max-w-md mx-auto">
+              <div className="text-6xl mb-4">✈️</div>
+              <h3 className="text-xl font-semibold text-aviation-cloud-900 mb-2">No flights booked yet!</h3>
+              <p className="text-aviation-cloud-600">
+                Once you have scheduled flights, they will appear here.
+              </p>
+            </div>
+          </div>
+        ) : flights.length === 0 && error ? (
+          <div className="bg-white rounded-lg shadow p-8 text-center">
+            <div className="max-w-md mx-auto">
+              <div className="text-6xl mb-4">⚠️</div>
+              <h3 className="text-xl font-semibold text-aviation-cloud-900 mb-2">Unable to load flights</h3>
+              <p className="text-aviation-cloud-600 mb-4">{error}</p>
+              <button
+                onClick={loadFlights}
+                className="px-4 py-2 bg-aviation-sky-600 text-white rounded-md hover:bg-aviation-sky-700 text-sm font-medium"
+              >
+                Try Again
+              </button>
+            </div>
           </div>
         ) : (
           <div className="space-y-4">

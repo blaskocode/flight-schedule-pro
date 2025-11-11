@@ -33,16 +33,30 @@ async function apiRequest<T>(
   const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   const url = `${baseUrl}${normalizedEndpoint}`;
   
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-      ...options.headers,
-    },
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        ...options.headers,
+      },
+    });
+  } catch (error) {
+    // Network error (CORS, connection failed, etc.)
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new Error('Network error: Unable to connect to the server. Please check your connection and try again.');
+    }
+    throw error;
+  }
 
   if (!response.ok) {
+    // Check for CORS errors specifically
+    if (response.status === 0 || (response.status >= 200 && response.status < 300 && !response.headers.get('content-type'))) {
+      throw new Error('CORS error: The server is not allowing requests from this origin. Please contact support.');
+    }
+
     let errorMessage = `API error: ${response.statusText}`;
     try {
       const errorData: ApiError = await response.json();
@@ -56,7 +70,8 @@ async function apiRequest<T>(
   // Handle empty responses
   const contentType = response.headers.get('content-type');
   if (contentType && contentType.includes('application/json')) {
-    return response.json();
+    const data = await response.json();
+    return data;
   }
   return {} as T;
 }

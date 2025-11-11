@@ -91,7 +91,7 @@ export const handler = async (
       statusCode: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
+        // CORS headers are handled by API Gateway
       },
       body: JSON.stringify({
         flights,

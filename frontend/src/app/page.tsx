@@ -16,10 +16,10 @@ export default function Home() {
     try {
       await getSession();
       // User is authenticated, redirect to dashboard
-      router.replace('/dashboard');
+      router.replace('/dashboard/');
     } catch {
       // User is not authenticated, redirect to login
-      router.replace('/login');
+      router.replace('/login/');
     } finally {
       setChecking(false);
     }

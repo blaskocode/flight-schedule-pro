@@ -16,9 +16,37 @@ export default function LoginPage() {
 
   // Check if user is already authenticated (only once)
   useEffect(() => {
-    if (!hasChecked) {
-      checkExistingSession();
+    let mounted = true;
+    
+    async function runCheck() {
+      if (!hasChecked && mounted) {
+        try {
+          await checkExistingSession();
+        } catch (error) {
+          console.error('Error checking session:', error);
+          if (mounted) {
+            setCheckingAuth(false);
+            setHasChecked(true);
+          }
+        }
+      }
     }
+    
+    // Add a timeout to prevent infinite loading
+    const timeout = setTimeout(() => {
+      if (mounted && checkingAuth) {
+        console.warn('Session check timeout, showing login form');
+        setCheckingAuth(false);
+        setHasChecked(true);
+      }
+    }, 3000); // 3 second timeout
+    
+    runCheck();
+    
+    return () => {
+      mounted = false;
+      clearTimeout(timeout);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run once on mount
 
@@ -26,9 +54,9 @@ export default function LoginPage() {
     try {
       await getSession();
       // User is already logged in, redirect to dashboard
-      router.replace('/dashboard');
-    } catch {
-      // Not authenticated, stay on login page
+      router.replace('/dashboard/');
+    } catch (error) {
+      // Not authenticated or error checking session, stay on login page
       setCheckingAuth(false);
       setHasChecked(true);
     }
@@ -45,7 +73,7 @@ export default function LoginPage() {
       await new Promise(resolve => setTimeout(resolve, 100));
       // Verify session is stored before navigating
       await getSession();
-      router.replace('/dashboard');
+      router.replace('/dashboard/');
     } catch (err: any) {
       setError(err.message || 'Failed to sign in');
     } finally {
