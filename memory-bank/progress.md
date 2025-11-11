@@ -72,6 +72,8 @@
 - [x] Weather status components ✅
 - [x] Reschedule selection UI ✅
 - [x] Instructor approval UI ✅
+- [x] Book Flight button and modal form ✅ (NEW - December 2024)
+- [x] Active Weather Alerts section ✅ (NEW - December 2024)
 
 ### Testing (0% - Not Started)
 

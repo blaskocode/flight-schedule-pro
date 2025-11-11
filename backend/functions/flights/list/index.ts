@@ -1,6 +1,25 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { prisma } from '../../../shared/db';
 
+// Helper function to get CORS headers
+// When allowCredentials is true, we must return the exact origin (not wildcard)
+const CLOUDFRONT_ORIGIN = 'https://db62n67tl6hkc.cloudfront.net';
+
+function getCorsHeaders(event: APIGatewayProxyEvent) {
+  // Get origin from request headers, validate against allowed origins
+  const requestOrigin = event.headers.Origin || event.headers.origin;
+  // Use CloudFront origin (must match API Gateway CORS config)
+  const allowedOrigin = requestOrigin === CLOUDFRONT_ORIGIN ? requestOrigin : CLOUDFRONT_ORIGIN;
+  
+  return {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Credentials': 'true',
+    'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token',
+    'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
+  };
+}
+
 export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
@@ -89,10 +108,7 @@ export const handler = async (
 
     return {
       statusCode: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        // CORS headers are handled by API Gateway
-      },
+      headers: getCorsHeaders(event),
       body: JSON.stringify({
         flights,
         count: flights.length,
@@ -102,7 +118,7 @@ export const handler = async (
     console.error('Error listing flights:', error);
     return {
       statusCode: 500,
-      headers: { 'Content-Type': 'application/json' },
+      headers: getCorsHeaders(event),
       body: JSON.stringify({
         error: 'Internal server error',
         message: error instanceof Error ? error.message : 'Unknown error',

@@ -100,6 +100,8 @@ The project is ready to begin implementation. The recommended starting point is:
    - ✅ View reschedule options link
    - ✅ Protected with AuthGuard
    - ✅ Sign out functionality
+   - ✅ **Book Flight button and modal form** (NEW - December 2024)
+   - ✅ **Active Weather Alerts section** showing all unsafe flights prominently (NEW - December 2024)
 
 7. **Day 4 Reschedule Selection UI - COMPLETE**:
    - ✅ RescheduleOptionsCard component (`frontend/src/components/reschedule/RescheduleOptionsCard.tsx`)

@@ -21,6 +21,7 @@ function DashboardContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [checkingWeather, setCheckingWeather] = useState<string | null>(null);
+  const [showBookFlight, setShowBookFlight] = useState(false);
 
   useEffect(() => {
     loadFlights();
@@ -124,13 +125,93 @@ function DashboardContent() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6 flex justify-between items-center">
           <h2 className="text-3xl font-bold text-aviation-cloud-900">My Flights</h2>
-          <button
-            onClick={loadFlights}
-            className="px-4 py-2 bg-aviation-sky-600 text-white rounded-md hover:bg-aviation-sky-700 text-sm font-medium"
-          >
-            Refresh
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowBookFlight(true)}
+              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium"
+            >
+              + Book Flight
+            </button>
+            <button
+              onClick={loadFlights}
+              className="px-4 py-2 bg-aviation-sky-600 text-white rounded-md hover:bg-aviation-sky-700 text-sm font-medium"
+            >
+              Refresh
+            </button>
+          </div>
         </div>
+
+        {/* Active Weather Alerts Section */}
+        {flights.length > 0 && (() => {
+          const unsafeFlights = flights.filter(flight => {
+            const latestCheck = flight.weatherChecks?.[0];
+            return latestCheck && latestCheck.result === 'UNSAFE' && flight.status === 'SCHEDULED';
+          });
+          
+          if (unsafeFlights.length > 0) {
+            return (
+              <div className="mb-6 bg-red-50 border-2 border-red-300 rounded-lg p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="text-2xl">🔴</span>
+                  <h3 className="text-xl font-bold text-red-900">Active Weather Alerts</h3>
+                </div>
+                <div className="space-y-3">
+                  {unsafeFlights.map((flight) => {
+                    const latestCheck = flight.weatherChecks?.[0];
+                    return (
+                      <div key={flight.id} className="bg-white rounded-lg p-4 border border-red-200">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="font-semibold text-red-900 mb-1">
+                              {format(new Date(flight.scheduledStart), 'EEEE, MMMM d, yyyy \'at\' h:mm a')} - High Risk
+                            </p>
+                            {latestCheck && (
+                              <div className="text-sm text-red-700 space-y-1">
+                                {latestCheck.visibility < 10 && (
+                                  <p>⛅ Visibility: {latestCheck.visibility} SM (Required: 10 SM)</p>
+                                )}
+                                {latestCheck.windSpeed > 15 && (
+                                  <p>💨 Winds: {latestCheck.windSpeed}kt (Limit: 15kt)</p>
+                                )}
+                                {latestCheck.ceiling && latestCheck.ceiling < 3000 && (
+                                  <p>☁️ Ceiling: {latestCheck.ceiling} ft (Required: 3000 ft)</p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => {
+                              const requestId = flight.rescheduleRequests?.[0]?.id;
+                              if (requestId) {
+                                router.push(`/reschedule/${requestId}`);
+                              } else {
+                                // Generate reschedule options
+                                api.generateRescheduleOptions(flight.id)
+                                  .then(() => {
+                                    alert('Reschedule options generated! Check your email or refresh the page.');
+                                    loadFlights();
+                                  })
+                                  .catch((err: any) => {
+                                    alert(err.message || 'Failed to generate reschedule options');
+                                  });
+                              }
+                            }}
+                            className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm font-medium whitespace-nowrap"
+                          >
+                            {flight.rescheduleRequests && flight.rescheduleRequests.length > 0
+                              ? 'View Reschedule Options →'
+                              : 'Generate Reschedule Options →'}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          }
+          return null;
+        })()}
 
         {error && (
           <div className="mb-4 rounded bg-red-50 border border-red-200 p-4 text-red-800">
@@ -303,7 +384,218 @@ function DashboardContent() {
             })}
           </div>
         )}
+
+        {/* Book Flight Modal */}
+        {showBookFlight && (
+          <BookFlightModal
+            onClose={() => setShowBookFlight(false)}
+            onSuccess={() => {
+              setShowBookFlight(false);
+              loadFlights();
+            }}
+          />
+        )}
       </main>
+    </div>
+  );
+}
+
+// Book Flight Modal Component
+function BookFlightModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+  const [formData, setFormData] = useState({
+    schoolId: '',
+    studentId: '',
+    instructorId: '',
+    aircraftId: '',
+    scheduledStart: '',
+    scheduledEnd: '',
+    departureAirport: '',
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  // For MVP, we'll use hardcoded seed data IDs or allow manual entry
+  // In production, you'd fetch these from API endpoints
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      // Validate required fields
+      if (!formData.schoolId || !formData.studentId || !formData.instructorId || 
+          !formData.aircraftId || !formData.scheduledStart || !formData.scheduledEnd || 
+          !formData.departureAirport) {
+        throw new Error('All fields are required');
+      }
+
+      // Validate dates
+      const startDate = new Date(formData.scheduledStart);
+      const endDate = new Date(formData.scheduledEnd);
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        throw new Error('Invalid date format');
+      }
+      if (endDate <= startDate) {
+        throw new Error('End time must be after start time');
+      }
+
+      await api.createFlight({
+        ...formData,
+        scheduledStart: startDate.toISOString(),
+        scheduledEnd: endDate.toISOString(),
+      });
+
+      alert('Flight booked successfully!');
+      onSuccess();
+    } catch (err: any) {
+      setError(err.message || 'Failed to book flight');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-bold text-aviation-cloud-900">Book New Flight</h2>
+            <button
+              onClick={onClose}
+              className="text-aviation-cloud-500 hover:text-aviation-cloud-700 text-2xl"
+            >
+              ×
+            </button>
+          </div>
+
+          {error && (
+            <div className="mb-4 rounded bg-red-50 border border-red-200 p-3 text-red-800">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-aviation-cloud-700 mb-1">
+                School ID <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={formData.schoolId}
+                onChange={(e) => setFormData({ ...formData, schoolId: e.target.value })}
+                className="w-full px-3 py-2 border border-aviation-cloud-300 rounded-md focus:outline-none focus:ring-2 focus:ring-aviation-sky-500"
+                placeholder="e.g., clxxx..."
+                required
+              />
+              <p className="text-xs text-aviation-cloud-500 mt-1">
+                Use seed data: Check database for school ID
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-aviation-cloud-700 mb-1">
+                Student ID <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={formData.studentId}
+                onChange={(e) => setFormData({ ...formData, studentId: e.target.value })}
+                className="w-full px-3 py-2 border border-aviation-cloud-300 rounded-md focus:outline-none focus:ring-2 focus:ring-aviation-sky-500"
+                placeholder="e.g., clxxx..."
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-aviation-cloud-700 mb-1">
+                Instructor ID <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={formData.instructorId}
+                onChange={(e) => setFormData({ ...formData, instructorId: e.target.value })}
+                className="w-full px-3 py-2 border border-aviation-cloud-300 rounded-md focus:outline-none focus:ring-2 focus:ring-aviation-sky-500"
+                placeholder="e.g., clxxx..."
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-aviation-cloud-700 mb-1">
+                Aircraft ID <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={formData.aircraftId}
+                onChange={(e) => setFormData({ ...formData, aircraftId: e.target.value })}
+                className="w-full px-3 py-2 border border-aviation-cloud-300 rounded-md focus:outline-none focus:ring-2 focus:ring-aviation-sky-500"
+                placeholder="e.g., clxxx..."
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-aviation-cloud-700 mb-1">
+                Departure Airport <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={formData.departureAirport}
+                onChange={(e) => setFormData({ ...formData, departureAirport: e.target.value.toUpperCase() })}
+                className="w-full px-3 py-2 border border-aviation-cloud-300 rounded-md focus:outline-none focus:ring-2 focus:ring-aviation-sky-500"
+                placeholder="e.g., KAUS"
+                required
+                maxLength={4}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-aviation-cloud-700 mb-1">
+                  Start Time <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="datetime-local"
+                  value={formData.scheduledStart}
+                  onChange={(e) => setFormData({ ...formData, scheduledStart: e.target.value })}
+                  className="w-full px-3 py-2 border border-aviation-cloud-300 rounded-md focus:outline-none focus:ring-2 focus:ring-aviation-sky-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-aviation-cloud-700 mb-1">
+                  End Time <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="datetime-local"
+                  value={formData.scheduledEnd}
+                  onChange={(e) => setFormData({ ...formData, scheduledEnd: e.target.value })}
+                  className="w-full px-3 py-2 border border-aviation-cloud-300 rounded-md focus:outline-none focus:ring-2 focus:ring-aviation-sky-500"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 border border-aviation-cloud-300 text-aviation-cloud-700 rounded-md hover:bg-aviation-cloud-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="px-4 py-2 bg-aviation-sky-600 text-white rounded-md hover:bg-aviation-sky-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Booking...' : 'Book Flight'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
   );
 }

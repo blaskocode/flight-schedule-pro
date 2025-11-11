@@ -2,6 +2,25 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { prisma } from '../../../shared/db';
 import { FlightStatus } from '@prisma/client';
 
+// Helper function to get CORS headers
+// When allowCredentials is true, we must return the exact origin (not wildcard)
+const CLOUDFRONT_ORIGIN = 'https://db62n67tl6hkc.cloudfront.net';
+
+function getCorsHeaders(event: APIGatewayProxyEvent) {
+  // Get origin from request headers, validate against allowed origins
+  const requestOrigin = event.headers.Origin || event.headers.origin;
+  // Use CloudFront origin (must match API Gateway CORS config)
+  const allowedOrigin = requestOrigin === CLOUDFRONT_ORIGIN ? requestOrigin : CLOUDFRONT_ORIGIN;
+  
+  return {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Credentials': 'true',
+    'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token',
+    'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
+  };
+}
+
 export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
@@ -29,7 +48,7 @@ export const handler = async (
     ) {
       return {
         statusCode: 400,
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCorsHeaders(event),
         body: JSON.stringify({
           error: 'Missing required fields',
           required: [
@@ -52,7 +71,7 @@ export const handler = async (
     if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
       return {
         statusCode: 400,
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCorsHeaders(event),
         body: JSON.stringify({ error: 'Invalid date format' }),
       };
     }
@@ -60,7 +79,7 @@ export const handler = async (
     if (endDate <= startDate) {
       return {
         statusCode: 400,
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCorsHeaders(event),
         body: JSON.stringify({
           error: 'scheduledEnd must be after scheduledStart',
         }),
@@ -78,7 +97,7 @@ export const handler = async (
     if (!school || !student || !instructor || !aircraft) {
       return {
         statusCode: 404,
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCorsHeaders(event),
         body: JSON.stringify({
           error: 'One or more related entities not found',
         }),
@@ -133,10 +152,7 @@ export const handler = async (
 
     return {
       statusCode: 201,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
+      headers: getCorsHeaders(event),
       body: JSON.stringify({
         message: 'Flight created successfully',
         flight,
@@ -146,7 +162,7 @@ export const handler = async (
     console.error('Error creating flight:', error);
     return {
       statusCode: 500,
-      headers: { 'Content-Type': 'application/json' },
+      headers: getCorsHeaders(event),
       body: JSON.stringify({
         error: 'Internal server error',
         message: error instanceof Error ? error.message : 'Unknown error',

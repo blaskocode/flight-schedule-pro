@@ -191,6 +191,12 @@ Centralized fetch with auth tokens
 
 ### TASK 4.5: Dashboard Page ✅
 Display flights with weather status
+- ✅ Flight list with weather status badges
+- ✅ Manual weather check button per flight
+- ✅ **Book Flight button and modal form** (NEW - Added December 2024)
+- ✅ **Active Weather Alerts section** showing all unsafe flights (NEW - Added December 2024)
+- ✅ Reschedule request status indicators
+- ✅ Generate/view reschedule options buttons
 
 ### TASK 4.6: Reschedule Selection UI ✅
 - Display 3 AI-generated options

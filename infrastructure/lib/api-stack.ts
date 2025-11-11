@@ -221,6 +221,9 @@ export class ApiStack extends cdk.Stack {
         // Try to import from FrontendStack export (if frontend is already deployed)
         // This will work if the frontend stack has been deployed and exported the value
         // If not, the deployment will fail and you'll need to provide the origin via context
+        // IMPORTANT: If you get "No export named FSP-FrontendOrigin found", either:
+        // 1. Deploy FrontendStack first, OR
+        // 2. Provide origin via: cdk deploy --context frontendOrigin=https://your-cloudfront-url.cloudfront.net
         const frontendOrigin = cdk.Fn.importValue('FSP-FrontendOrigin');
         allowedOrigins = [frontendOrigin];
       }
@@ -265,7 +268,9 @@ export class ApiStack extends cdk.Stack {
     const flights = this.api.root.addResource('flights');
     flights.addMethod(
       'GET',
-      new apigateway.LambdaIntegration(flightsListFn),
+      new apigateway.LambdaIntegration(flightsListFn, {
+        proxy: true, // Use proxy mode - Lambda returns full response including headers
+      }),
       {
         authorizer,
         authorizationType: apigateway.AuthorizationType.COGNITO,
@@ -273,7 +278,9 @@ export class ApiStack extends cdk.Stack {
     );
     flights.addMethod(
       'POST',
-      new apigateway.LambdaIntegration(flightsCreateFn),
+      new apigateway.LambdaIntegration(flightsCreateFn, {
+        proxy: true, // Use proxy mode - Lambda returns full response including headers
+      }),
       {
         authorizer,
         authorizationType: apigateway.AuthorizationType.COGNITO,
