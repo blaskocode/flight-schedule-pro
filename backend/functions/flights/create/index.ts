@@ -1,30 +1,13 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { prisma } from '../../../shared/db';
+import { getPrismaClient } from '../../../shared/db';
 import { FlightStatus } from '@prisma/client';
-
-// Helper function to get CORS headers
-// When allowCredentials is true, we must return the exact origin (not wildcard)
-const CLOUDFRONT_ORIGIN = 'https://db62n67tl6hkc.cloudfront.net';
-
-function getCorsHeaders(event: APIGatewayProxyEvent) {
-  // Get origin from request headers, validate against allowed origins
-  const requestOrigin = event.headers.Origin || event.headers.origin;
-  // Use CloudFront origin (must match API Gateway CORS config)
-  const allowedOrigin = requestOrigin === CLOUDFRONT_ORIGIN ? requestOrigin : CLOUDFRONT_ORIGIN;
-  
-  return {
-    'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': allowedOrigin,
-    'Access-Control-Allow-Credentials': 'true',
-    'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token',
-    'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
-  };
-}
+import { getCorsHeaders } from '../../../shared/cors';
 
 export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
   try {
+    const prisma = await getPrismaClient();
     const body = JSON.parse(event.body || '{}');
     const {
       schoolId,

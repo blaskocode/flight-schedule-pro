@@ -4,8 +4,10 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import AuthGuard from '@/components/auth/AuthGuard';
-import { api, Flight } from '@/lib/api-client';
+import { api, Flight, Student, Instructor, Aircraft, School } from '@/lib/api-client';
 import { signOut } from '@/lib/auth';
+import FlightDetailsModal from '@/components/flights/FlightDetailsModal';
+import WeatherBriefingModal from '@/components/flights/WeatherBriefingModal';
 
 export default function DashboardPage() {
   return (
@@ -22,6 +24,9 @@ function DashboardContent() {
   const [error, setError] = useState('');
   const [checkingWeather, setCheckingWeather] = useState<string | null>(null);
   const [showBookFlight, setShowBookFlight] = useState(false);
+  const [selectedFlight, setSelectedFlight] = useState<Flight | null>(null);
+  const [showFlightDetails, setShowFlightDetails] = useState(false);
+  const [showWeatherBriefing, setShowWeatherBriefing] = useState(false);
 
   useEffect(() => {
     loadFlights();
@@ -269,13 +274,33 @@ function DashboardContent() {
                         🕐 {format(new Date(flight.scheduledStart), 'h:mm a')} - {format(new Date(flight.scheduledEnd), 'h:mm a')}
                       </p>
                     </div>
-                    <button
-                      onClick={() => handleCheckWeather(flight.id)}
-                      disabled={checkingWeather === flight.id}
-                      className="px-4 py-2 bg-aviation-sky-600 text-white rounded-md hover:bg-aviation-sky-700 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {checkingWeather === flight.id ? 'Checking...' : 'Check Weather'}
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          setSelectedFlight(flight);
+                          setShowFlightDetails(true);
+                        }}
+                        className="px-3 py-2 bg-aviation-cloud-600 text-white rounded-md hover:bg-aviation-cloud-700 text-sm font-medium"
+                      >
+                        View Details
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedFlight(flight);
+                          setShowWeatherBriefing(true);
+                        }}
+                        className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
+                      >
+                        Weather Briefing
+                      </button>
+                      <button
+                        onClick={() => handleCheckWeather(flight.id)}
+                        disabled={checkingWeather === flight.id}
+                        className="px-3 py-2 bg-aviation-sky-600 text-white rounded-md hover:bg-aviation-sky-700 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {checkingWeather === flight.id ? 'Checking...' : 'Check Weather'}
+                      </button>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -395,6 +420,28 @@ function DashboardContent() {
             }}
           />
         )}
+
+        {/* Flight Details Modal */}
+        {showFlightDetails && selectedFlight && (
+          <FlightDetailsModal
+            flight={selectedFlight}
+            onClose={() => {
+              setShowFlightDetails(false);
+              setSelectedFlight(null);
+            }}
+          />
+        )}
+
+        {/* Weather Briefing Modal */}
+        {showWeatherBriefing && selectedFlight && (
+          <WeatherBriefingModal
+            flightId={selectedFlight.id}
+            onClose={() => {
+              setShowWeatherBriefing(false);
+              setSelectedFlight(null);
+            }}
+          />
+        )}
       </main>
     </div>
   );
@@ -413,9 +460,36 @@ function BookFlightModal({ onClose, onSuccess }: { onClose: () => void; onSucces
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [students, setStudents] = useState<Student[]>([]);
+  const [instructors, setInstructors] = useState<Instructor[]>([]);
+  const [aircraft, setAircraft] = useState<Aircraft[]>([]);
+  const [schools, setSchools] = useState<School[]>([]);
+  const [loadingResources, setLoadingResources] = useState(true);
 
-  // For MVP, we'll use hardcoded seed data IDs or allow manual entry
-  // In production, you'd fetch these from API endpoints
+  useEffect(() => {
+    loadResources();
+  }, []);
+
+  async function loadResources() {
+    try {
+      setLoadingResources(true);
+      const [studentsRes, instructorsRes, aircraftRes, schoolsRes] = await Promise.all([
+        api.getStudents(),
+        api.getInstructors(),
+        api.getAircraft(),
+        api.getSchools(),
+      ]);
+      setStudents(studentsRes.students);
+      setInstructors(instructorsRes.instructors);
+      setAircraft(aircraftRes.aircraft);
+      setSchools(schoolsRes.schools);
+    } catch (err: any) {
+      console.error('Error loading resources:', err);
+    } finally {
+      setLoadingResources(false);
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -474,65 +548,88 @@ function BookFlightModal({ onClose, onSuccess }: { onClose: () => void; onSucces
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-aviation-cloud-700 mb-1">
-                School ID <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={formData.schoolId}
-                onChange={(e) => setFormData({ ...formData, schoolId: e.target.value })}
-                className="w-full px-3 py-2 border border-aviation-cloud-300 rounded-md focus:outline-none focus:ring-2 focus:ring-aviation-sky-500"
-                placeholder="e.g., clxxx..."
-                required
-              />
-              <p className="text-xs text-aviation-cloud-500 mt-1">
-                Use seed data: Check database for school ID
-              </p>
+          {loadingResources ? (
+            <div className="text-center py-8">
+              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-aviation-sky-600 border-r-transparent"></div>
+              <p className="mt-4 text-aviation-cloud-600">Loading resources...</p>
             </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-aviation-cloud-700 mb-1">
+                  School <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.schoolId}
+                  onChange={(e) => setFormData({ ...formData, schoolId: e.target.value })}
+                  className="w-full px-3 py-2 border border-aviation-cloud-300 rounded-md focus:outline-none focus:ring-2 focus:ring-aviation-sky-500"
+                  required
+                >
+                  <option value="">Select a school</option>
+                  {schools.map((school) => (
+                    <option key={school.id} value={school.id}>
+                      {school.name} ({school.airportCode})
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-aviation-cloud-700 mb-1">
-                Student ID <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={formData.studentId}
-                onChange={(e) => setFormData({ ...formData, studentId: e.target.value })}
-                className="w-full px-3 py-2 border border-aviation-cloud-300 rounded-md focus:outline-none focus:ring-2 focus:ring-aviation-sky-500"
-                placeholder="e.g., clxxx..."
-                required
-              />
-            </div>
+              <div>
+                <label className="block text-sm font-medium text-aviation-cloud-700 mb-1">
+                  Student <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.studentId}
+                  onChange={(e) => setFormData({ ...formData, studentId: e.target.value })}
+                  className="w-full px-3 py-2 border border-aviation-cloud-300 rounded-md focus:outline-none focus:ring-2 focus:ring-aviation-sky-500"
+                  required
+                >
+                  <option value="">Select a student</option>
+                  {students.map((student) => (
+                    <option key={student.id} value={student.id}>
+                      {student.firstName} {student.lastName} ({student.trainingLevel.replace('_', ' ')})
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-aviation-cloud-700 mb-1">
-                Instructor ID <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={formData.instructorId}
-                onChange={(e) => setFormData({ ...formData, instructorId: e.target.value })}
-                className="w-full px-3 py-2 border border-aviation-cloud-300 rounded-md focus:outline-none focus:ring-2 focus:ring-aviation-sky-500"
-                placeholder="e.g., clxxx..."
-                required
-              />
-            </div>
+              <div>
+                <label className="block text-sm font-medium text-aviation-cloud-700 mb-1">
+                  Instructor <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.instructorId}
+                  onChange={(e) => setFormData({ ...formData, instructorId: e.target.value })}
+                  className="w-full px-3 py-2 border border-aviation-cloud-300 rounded-md focus:outline-none focus:ring-2 focus:ring-aviation-sky-500"
+                  required
+                >
+                  <option value="">Select an instructor</option>
+                  {instructors.map((instructor) => (
+                    <option key={instructor.id} value={instructor.id}>
+                      {instructor.firstName} {instructor.lastName}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-aviation-cloud-700 mb-1">
-                Aircraft ID <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={formData.aircraftId}
-                onChange={(e) => setFormData({ ...formData, aircraftId: e.target.value })}
-                className="w-full px-3 py-2 border border-aviation-cloud-300 rounded-md focus:outline-none focus:ring-2 focus:ring-aviation-sky-500"
-                placeholder="e.g., clxxx..."
-                required
-              />
-            </div>
+              <div>
+                <label className="block text-sm font-medium text-aviation-cloud-700 mb-1">
+                  Aircraft <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.aircraftId}
+                  onChange={(e) => setFormData({ ...formData, aircraftId: e.target.value })}
+                  className="w-full px-3 py-2 border border-aviation-cloud-300 rounded-md focus:outline-none focus:ring-2 focus:ring-aviation-sky-500"
+                  required
+                >
+                  <option value="">Select an aircraft</option>
+                  {aircraft.map((ac) => (
+                    <option key={ac.id} value={ac.id}>
+                      {ac.model} ({ac.tailNumber})
+                    </option>
+                  ))}
+                </select>
+              </div>
 
             <div>
               <label className="block text-sm font-medium text-aviation-cloud-700 mb-1">
@@ -594,6 +691,7 @@ function BookFlightModal({ onClose, onSuccess }: { onClose: () => void; onSucces
               </button>
             </div>
           </form>
+          )}
         </div>
       </div>
     </div>

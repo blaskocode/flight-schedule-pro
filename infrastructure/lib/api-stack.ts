@@ -69,73 +69,148 @@ export class ApiStack extends cdk.Stack {
     };
 
     // Weather Check Lambda
-    const weatherCheckFn = new lambda.Function(this, 'WeatherCheckFunction', {
+    const weatherCheckFn = new lambdaNodejs.NodejsFunction(this, 'WeatherCheckFunction', {
       ...lambdaConfig,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset('../backend/functions/weather/check'),
+      entry: '../backend/functions/weather/check/index.ts',
+      bundling: {
+        externalModules: ['@prisma/client', '@aws-sdk', 'metar-taf-parser'],
+      },
     });
 
     // Flights List Lambda
-    const flightsListFn = new lambda.Function(this, 'FlightsListFunction', {
+    const flightsListFn = new lambdaNodejs.NodejsFunction(this, 'FlightsListFunction', {
       ...lambdaConfig,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset('../backend/functions/flights/list'),
+      entry: '../backend/functions/flights/list/index.ts',
+      bundling: {
+        externalModules: ['@prisma/client', '@aws-sdk', 'metar-taf-parser'],
+      },
     });
 
     // Flights Create Lambda
-    const flightsCreateFn = new lambda.Function(this, 'FlightsCreateFunction', {
+    const flightsCreateFn = new lambdaNodejs.NodejsFunction(this, 'FlightsCreateFunction', {
       ...lambdaConfig,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset('../backend/functions/flights/create'),
+      entry: '../backend/functions/flights/create/index.ts',
+      bundling: {
+        externalModules: ['@prisma/client', '@aws-sdk', 'metar-taf-parser'],
+      },
+    });
+
+    // Students List Lambda
+    const studentsListFn = new lambdaNodejs.NodejsFunction(this, 'StudentsListFunction', {
+      ...lambdaConfig,
+      entry: '../backend/functions/students/list/index.ts',
+      bundling: {
+        externalModules: ['@prisma/client', '@aws-sdk', 'metar-taf-parser'],
+      },
+    });
+
+    // Instructors List Lambda
+    const instructorsListFn = new lambdaNodejs.NodejsFunction(this, 'InstructorsListFunction', {
+      ...lambdaConfig,
+      entry: '../backend/functions/instructors/list/index.ts',
+      bundling: {
+        externalModules: ['@prisma/client', '@aws-sdk', 'metar-taf-parser'],
+      },
+    });
+
+    // Aircraft List Lambda
+    const aircraftListFn = new lambdaNodejs.NodejsFunction(this, 'AircraftListFunction', {
+      ...lambdaConfig,
+      entry: '../backend/functions/aircraft/list/index.ts',
+      bundling: {
+        externalModules: ['@prisma/client', '@aws-sdk', 'metar-taf-parser'],
+      },
+    });
+
+    // Schools List Lambda
+    const schoolsListFn = new lambdaNodejs.NodejsFunction(this, 'SchoolsListFunction', {
+      ...lambdaConfig,
+      entry: '../backend/functions/schools/list/index.ts',
+      bundling: {
+        externalModules: ['@prisma/client', '@aws-sdk', 'metar-taf-parser'],
+      },
+    });
+
+    // Weather Forecast Lambda
+    const weatherForecastFn = new lambdaNodejs.NodejsFunction(this, 'WeatherForecastFunction', {
+      ...lambdaConfig,
+      entry: '../backend/functions/weather/forecast/index.ts',
+      environment: {
+        ...environment,
+        WEATHER_API_SECRET_ARN: secrets.weatherApiSecret.secretArn,
+      },
+      bundling: {
+        externalModules: ['@prisma/client', '@aws-sdk', 'metar-taf-parser'],
+      },
+    });
+
+    // Weather Briefing Lambda
+    const weatherBriefingFn = new lambdaNodejs.NodejsFunction(this, 'WeatherBriefingFunction', {
+      ...lambdaConfig,
+      entry: '../backend/functions/weather/briefing/index.ts',
+      environment: {
+        ...environment,
+        WEATHER_API_SECRET_ARN: secrets.weatherApiSecret.secretArn,
+      },
+      bundling: {
+        externalModules: ['@prisma/client', '@aws-sdk', 'metar-taf-parser'],
+      },
     });
 
     // API Info Lambda (root endpoint - no VPC needed, no auth)
-    const apiInfoFn = new lambda.Function(this, 'ApiInfoFunction', {
+    const apiInfoFn = new lambdaNodejs.NodejsFunction(this, 'ApiInfoFunction', {
       runtime: lambda.Runtime.NODEJS_20_X,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset('../backend/functions/api-info'),
+      entry: '../backend/functions/api-info/index.js',
       timeout: cdk.Duration.seconds(10),
       memorySize: 128,
     });
 
     // AI Reschedule Generate Lambda (needs more memory and OpenAI secret)
-    const aiRescheduleFn = new lambda.Function(this, 'AIRescheduleFunction', {
+    const aiRescheduleFn = new lambdaNodejs.NodejsFunction(this, 'AIRescheduleFunction', {
       ...lambdaConfig,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset('../backend/functions/reschedule/generate-options'),
+      entry: '../backend/functions/reschedule/generate-options/index.ts',
       memorySize: 1024,
       timeout: cdk.Duration.seconds(60),
       environment: {
         ...environment,
         OPENAI_SECRET_ARN: secrets.openaiSecret.secretArn,
       },
+      bundling: {
+        externalModules: ['@prisma/client', '@aws-sdk', 'metar-taf-parser', 'ai', '@ai-sdk/openai', 'zod'],
+      },
     });
 
     // Reschedule Select Option Lambda
-    const rescheduleSelectFn = new lambda.Function(this, 'RescheduleSelectFunction', {
+    const rescheduleSelectFn = new lambdaNodejs.NodejsFunction(this, 'RescheduleSelectFunction', {
       ...lambdaConfig,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset('../backend/functions/reschedule/select-option'),
+      entry: '../backend/functions/reschedule/select-option/index.ts',
+      bundling: {
+        externalModules: ['@prisma/client', '@aws-sdk', 'metar-taf-parser'],
+      },
     });
 
     // Reschedule Approve Lambda
-    const rescheduleApproveFn = new lambda.Function(this, 'RescheduleApproveFunction', {
+    const rescheduleApproveFn = new lambdaNodejs.NodejsFunction(this, 'RescheduleApproveFunction', {
       ...lambdaConfig,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset('../backend/functions/reschedule/approve-reschedule'),
+      entry: '../backend/functions/reschedule/approve-reschedule/index.ts',
+      bundling: {
+        externalModules: ['@prisma/client', '@aws-sdk', 'metar-taf-parser'],
+      },
     });
 
     // Hourly Weather Check Job Lambda
-    const hourlyWeatherCheckFn = new lambda.Function(this, 'HourlyWeatherCheckFunction', {
+    const hourlyWeatherCheckFn = new lambdaNodejs.NodejsFunction(this, 'HourlyWeatherCheckFunction', {
       ...lambdaConfig,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset('../backend/functions/jobs/hourly-weather-check'),
+      entry: '../backend/functions/jobs/hourly-weather-check/index.ts',
       timeout: cdk.Duration.minutes(5),
       memorySize: 1024,
       environment: {
         ...environment,
         OPENAI_SECRET_ARN: secrets.openaiSecret.secretArn,
         WEATHER_API_SECRET_ARN: secrets.weatherApiSecret.secretArn,
+      },
+      bundling: {
+        externalModules: ['@prisma/client', '@aws-sdk', 'metar-taf-parser', 'ai', '@ai-sdk/openai', 'zod'],
       },
     });
 
@@ -151,7 +226,7 @@ export class ApiStack extends cdk.Stack {
       memorySize: 1024,
       entry: '../backend/functions/admin/migrate/index.ts',
       bundling: {
-        externalModules: ['@prisma/client', '@aws-sdk'],
+        externalModules: ['@prisma/client', '@aws-sdk', 'metar-taf-parser'],
       },
     });
 
@@ -167,7 +242,7 @@ export class ApiStack extends cdk.Stack {
       memorySize: 1024,
       entry: '../backend/functions/admin/seed/index.ts',
       bundling: {
-        externalModules: ['@prisma/client', '@aws-sdk'],
+        externalModules: ['@prisma/client', '@aws-sdk', 'metar-taf-parser'],
       },
     });
 
@@ -181,10 +256,18 @@ export class ApiStack extends cdk.Stack {
     databaseSecret.grantRead(hourlyWeatherCheckFn);
     databaseSecret.grantRead(migrateFn);
     databaseSecret.grantRead(seedFn);
+    databaseSecret.grantRead(studentsListFn);
+    databaseSecret.grantRead(instructorsListFn);
+    databaseSecret.grantRead(aircraftListFn);
+    databaseSecret.grantRead(schoolsListFn);
+    databaseSecret.grantRead(weatherForecastFn);
+    databaseSecret.grantRead(weatherBriefingFn);
     
     secrets.openaiSecret.grantRead(aiRescheduleFn);
     secrets.openaiSecret.grantRead(hourlyWeatherCheckFn);
     secrets.weatherApiSecret.grantRead(hourlyWeatherCheckFn);
+    secrets.weatherApiSecret.grantRead(weatherForecastFn);
+    secrets.weatherApiSecret.grantRead(weatherBriefingFn);
 
     // Grant SES permissions for email notifications
     const sesPolicy = new iam.PolicyStatement({
@@ -197,6 +280,7 @@ export class ApiStack extends cdk.Stack {
     rescheduleSelectFn.addToRolePolicy(sesPolicy);
     rescheduleApproveFn.addToRolePolicy(sesPolicy);
     aiRescheduleFn.addToRolePolicy(sesPolicy);
+    weatherBriefingFn.addToRolePolicy(sesPolicy);
 
     // Cognito Authorizer
     const authorizer = new apigateway.CognitoUserPoolsAuthorizer(this, 'CognitoAuthorizer', {
@@ -206,7 +290,7 @@ export class ApiStack extends cdk.Stack {
     // Determine allowed origins for CORS
     // When allowCredentials is true, we cannot use ALL_ORIGINS
     // We need to specify the exact origin(s)
-    // Priority: 1) frontendOrigin prop, 2) context variable, 3) CloudFormation import (if available)
+    // Priority: 1) frontendOrigin prop, 2) context variable, 3) Try to import from FrontendStack (with fallback)
     let allowedOrigins: string[];
     
     if (props.frontendOrigin) {
@@ -219,11 +303,12 @@ export class ApiStack extends cdk.Stack {
         allowedOrigins = [contextOrigin];
       } else {
         // Try to import from FrontendStack export (if frontend is already deployed)
-        // This will work if the frontend stack has been deployed and exported the value
-        // If not, the deployment will fail and you'll need to provide the origin via context
-        // IMPORTANT: If you get "No export named FSP-FrontendOrigin found", either:
-        // 1. Deploy FrontendStack first, OR
-        // 2. Provide origin via: cdk deploy --context frontendOrigin=https://your-cloudfront-url.cloudfront.net
+        // Note: cdk.Fn.importValue() will fail at synthesis if export doesn't exist
+        // So we use a conditional approach: try to import, but provide a sensible default
+        // The export may not exist if frontend stack hasn't been deployed yet
+        // In that case, we'll use a known CloudFront URL or allow the user to provide it via context
+        // IMPORTANT: If you get "No export named FSP-FrontendOrigin found", provide origin via:
+        // cdk deploy FlightSchedulePro-Api --context frontendOrigin=https://your-cloudfront-url.cloudfront.net
         const frontendOrigin = cdk.Fn.importValue('FSP-FrontendOrigin');
         allowedOrigins = [frontendOrigin];
       }
@@ -258,7 +343,23 @@ export class ApiStack extends cdk.Stack {
     const weather = this.api.root.addResource('weather');
     weather.addResource('check').addMethod(
       'POST',
-      new apigateway.LambdaIntegration(weatherCheckFn),
+      new apigateway.LambdaIntegration(weatherCheckFn, { proxy: true }),
+      {
+        authorizer,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+      }
+    );
+    weather.addResource('forecast').addResource('{airport}').addMethod(
+      'GET',
+      new apigateway.LambdaIntegration(weatherForecastFn, { proxy: true }),
+      {
+        authorizer,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+      }
+    );
+    weather.addResource('briefing').addResource('{flightId}').addMethod(
+      'GET',
+      new apigateway.LambdaIntegration(weatherBriefingFn, { proxy: true }),
       {
         authorizer,
         authorizationType: apigateway.AuthorizationType.COGNITO,
@@ -290,7 +391,7 @@ export class ApiStack extends cdk.Stack {
     const reschedule = this.api.root.addResource('reschedule');
     reschedule.addResource('generate').addMethod(
       'POST',
-      new apigateway.LambdaIntegration(aiRescheduleFn),
+      new apigateway.LambdaIntegration(aiRescheduleFn, { proxy: true }),
       {
         authorizer,
         authorizationType: apigateway.AuthorizationType.COGNITO,
@@ -298,7 +399,7 @@ export class ApiStack extends cdk.Stack {
     );
     reschedule.addResource('select').addMethod(
       'POST',
-      new apigateway.LambdaIntegration(rescheduleSelectFn),
+      new apigateway.LambdaIntegration(rescheduleSelectFn, { proxy: true }),
       {
         authorizer,
         authorizationType: apigateway.AuthorizationType.COGNITO,
@@ -306,7 +407,48 @@ export class ApiStack extends cdk.Stack {
     );
     reschedule.addResource('approve').addMethod(
       'POST',
-      new apigateway.LambdaIntegration(rescheduleApproveFn),
+      new apigateway.LambdaIntegration(rescheduleApproveFn, { proxy: true }),
+      {
+        authorizer,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+      }
+    );
+
+    // Resource list endpoints
+    const students = this.api.root.addResource('students');
+    students.addMethod(
+      'GET',
+      new apigateway.LambdaIntegration(studentsListFn, { proxy: true }),
+      {
+        authorizer,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+      }
+    );
+
+    const instructors = this.api.root.addResource('instructors');
+    instructors.addMethod(
+      'GET',
+      new apigateway.LambdaIntegration(instructorsListFn, { proxy: true }),
+      {
+        authorizer,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+      }
+    );
+
+    const aircraft = this.api.root.addResource('aircraft');
+    aircraft.addMethod(
+      'GET',
+      new apigateway.LambdaIntegration(aircraftListFn, { proxy: true }),
+      {
+        authorizer,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+      }
+    );
+
+    const schools = this.api.root.addResource('schools');
+    schools.addMethod(
+      'GET',
+      new apigateway.LambdaIntegration(schoolsListFn, { proxy: true }),
       {
         authorizer,
         authorizationType: apigateway.AuthorizationType.COGNITO,

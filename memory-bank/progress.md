@@ -36,7 +36,7 @@
 - [x] Database stack (VPC, RDS, Redis) - ✅ Deployed
 - [x] Secrets stack - ✅ Deployed
 - [x] Auth stack (Cognito) - ✅ Deployed
-- [x] API stack (API Gateway, Lambda, EventBridge) - ✅ Complete with all Lambda functions
+- [x] API stack (API Gateway, Lambda, EventBridge) - ✅ Deployed successfully (November 11, 2024) with all Lambda functions and CORS configuration
 - [x] Database migrations - ✅ Lambda function created and verified working
 - [x] Database seeding - ✅ Lambda function created and verified working
 - [x] Lambda layer - ✅ Optimized and deployed (76MB compressed, under 250MB limit)
@@ -136,6 +136,11 @@
 ## Known Issues
 
 **None** - All gaps have been resolved in documentation.
+
+**Recent Fixes** (November 2024):
+- ✅ API stack deployment issue resolved (CORS configuration fixed by providing CloudFront origin via context)
+- ✅ All new Lambda endpoints deployed successfully (AircraftList, InstructorsList, SchoolsList, StudentsList, WeatherForecast, WeatherBriefing)
+- ✅ CORS headers properly configured for CloudFront origin
 
 **Recent Fixes** (December 2024):
 - ✅ Lambda layer size issue resolved (optimized from 94MB to 76MB compressed)

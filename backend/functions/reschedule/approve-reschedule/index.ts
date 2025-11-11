@@ -1,20 +1,22 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { prisma } from '../../../shared/db';
+import { getPrismaClient } from '../../../shared/db';
 import { sendEmail } from '../../../shared/email/ses-client';
 import { confirmationEmail } from '../../../shared/email/templates';
 import { FlightStatus } from '@prisma/client';
+import { getCorsHeaders } from '../../../shared/cors';
 
 export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
   try {
+    const prisma = await getPrismaClient();
     const body = JSON.parse(event.body || '{}');
     const { rescheduleRequestId, approved } = body;
 
     if (!rescheduleRequestId || approved === undefined) {
       return {
         statusCode: 400,
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCorsHeaders(event),
         body: JSON.stringify({ error: 'rescheduleRequestId and approved required' }),
       };
     }
@@ -37,7 +39,7 @@ export const handler = async (
     if (!request) {
       return {
         statusCode: 404,
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCorsHeaders(event),
         body: JSON.stringify({ error: 'Reschedule request not found' }),
       };
     }
@@ -62,10 +64,7 @@ export const handler = async (
 
       return {
         statusCode: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
+        headers: getCorsHeaders(event),
         body: JSON.stringify({ message: 'Reschedule rejected' }),
       };
     }
@@ -146,10 +145,7 @@ export const handler = async (
 
     return {
       statusCode: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
+      headers: getCorsHeaders(event),
       body: JSON.stringify({
         message: 'Flight rescheduled successfully',
         newFlight: result,
@@ -159,7 +155,7 @@ export const handler = async (
     console.error('Error approving reschedule:', error);
     return {
       statusCode: 500,
-      headers: { 'Content-Type': 'application/json' },
+      headers: getCorsHeaders(event),
       body: JSON.stringify({
         error: 'Internal server error',
         message: error instanceof Error ? error.message : 'Unknown error',

@@ -1,18 +1,20 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { prisma } from '../../../shared/db';
+import { getPrismaClient } from '../../../shared/db';
 import { sendEmail } from '../../../shared/email/ses-client';
+import { getCorsHeaders } from '../../../shared/cors';
 
 export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
   try {
+    const prisma = await getPrismaClient();
     const body = JSON.parse(event.body || '{}');
     const { rescheduleRequestId, selectedOption } = body;
 
     if (!rescheduleRequestId || selectedOption === undefined) {
       return {
         statusCode: 400,
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCorsHeaders(event),
         body: JSON.stringify({ error: 'rescheduleRequestId and selectedOption required' }),
       };
     }
@@ -21,7 +23,7 @@ export const handler = async (
     if (selectedOption < 0 || selectedOption > 2) {
       return {
         statusCode: 400,
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCorsHeaders(event),
         body: JSON.stringify({ error: 'selectedOption must be 0, 1, or 2' }),
       };
     }
@@ -43,7 +45,7 @@ export const handler = async (
     if (!request) {
       return {
         statusCode: 404,
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCorsHeaders(event),
         body: JSON.stringify({ error: 'Reschedule request not found' }),
       };
     }
@@ -57,7 +59,7 @@ export const handler = async (
       
       return {
         statusCode: 400,
-        headers: { 'Content-Type': 'application/json' },
+        headers: getCorsHeaders(event),
         body: JSON.stringify({ error: 'Reschedule request has expired' }),
       };
     }
@@ -100,10 +102,7 @@ Approve at: https://app.flightschedulepro.com/approve/${rescheduleRequestId}
 
     return {
       statusCode: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
+      headers: getCorsHeaders(event),
       body: JSON.stringify({
         message: 'Selection recorded. Instructor notified.',
         request: updatedRequest,
@@ -113,7 +112,7 @@ Approve at: https://app.flightschedulepro.com/approve/${rescheduleRequestId}
     console.error('Error selecting option:', error);
     return {
       statusCode: 500,
-      headers: { 'Content-Type': 'application/json' },
+      headers: getCorsHeaders(event),
       body: JSON.stringify({
         error: 'Internal server error',
         message: error instanceof Error ? error.message : 'Unknown error',

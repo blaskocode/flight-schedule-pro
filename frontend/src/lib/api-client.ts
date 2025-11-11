@@ -194,6 +194,72 @@ export interface ApproveRescheduleData {
   approved: boolean;
 }
 
+export interface Student {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  trainingLevel: string;
+  totalHours: number;
+}
+
+export interface Instructor {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
+export interface Aircraft {
+  id: string;
+  tailNumber: string;
+  model: string;
+}
+
+export interface School {
+  id: string;
+  name: string;
+  airportCode: string;
+  timezone: string;
+}
+
+export interface WeatherBriefing {
+  flight: {
+    id: string;
+    scheduledStart: string;
+    departureAirport: string;
+    student: {
+      name: string;
+      trainingLevel: string;
+    };
+  };
+  currentWeather: {
+    visibility: number;
+    ceiling: number | null;
+    windSpeed: number;
+    conditions: string;
+    provider: string;
+  };
+  safety: {
+    safe: boolean;
+    reasons: string[];
+    minimums: {
+      visibility: number;
+      ceiling: number;
+      maxWind: number;
+    };
+  };
+  historicalChecks: Array<{
+    id: string;
+    checkTime: string;
+    result: string;
+    visibility: number;
+    ceiling: number | null;
+    windSpeed: number;
+    conditions: string;
+  }>;
+}
+
 export const api = {
   // Flights
   async getFlights(params?: {
@@ -250,6 +316,34 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data),
     });
+  },
+
+  // Resource lists
+  async getStudents(): Promise<{ students: Student[]; count: number }> {
+    return apiRequest<{ students: Student[]; count: number }>('/students', { method: 'GET' });
+  },
+
+  async getInstructors(): Promise<{ instructors: Instructor[]; count: number }> {
+    return apiRequest<{ instructors: Instructor[]; count: number }>('/instructors', { method: 'GET' });
+  },
+
+  async getAircraft(): Promise<{ aircraft: Aircraft[]; count: number }> {
+    return apiRequest<{ aircraft: Aircraft[]; count: number }>('/aircraft', { method: 'GET' });
+  },
+
+  async getSchools(): Promise<{ schools: School[]; count: number }> {
+    return apiRequest<{ schools: School[]; count: number }>('/schools', { method: 'GET' });
+  },
+
+  // Weather
+  async getWeatherForecast(airport: string): Promise<{ airport: string; forecast: any }> {
+    return apiRequest<{ airport: string; forecast: any }>(`/weather/forecast/${airport}`, {
+      method: 'GET',
+    });
+  },
+
+  async getWeatherBriefing(flightId: string): Promise<WeatherBriefing> {
+    return apiRequest<WeatherBriefing>(`/weather/briefing/${flightId}`, { method: 'GET' });
   },
 };
 

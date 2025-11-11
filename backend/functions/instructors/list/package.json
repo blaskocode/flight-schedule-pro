@@ -1,0 +1,9 @@
+{
+  "name": "instructors-list",
+  "version": "1.0.0",
+  "description": "List all instructors",
+  "main": "index.js",
+  "scripts": {},
+  "dependencies": {}
+}
+

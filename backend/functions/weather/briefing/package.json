@@ -1,0 +1,9 @@
+{
+  "name": "weather-briefing",
+  "version": "1.0.0",
+  "description": "Get detailed weather briefing for flight",
+  "main": "index.js",
+  "scripts": {},
+  "dependencies": {}
+}
+

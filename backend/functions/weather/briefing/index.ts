@@ -1,7 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { PrismaClient, WeatherSafety } from '@prisma/client';
-import { getWeatherProvider, checkWeatherSafety } from '../../../shared/weather';
 import { getPrismaClient } from '../../../shared/db';
+import { getWeatherProvider, checkWeatherSafety } from '../../../shared/weather';
 import { getCorsHeaders } from '../../../shared/cors';
 
 export const handler = async (
@@ -9,9 +8,8 @@ export const handler = async (
 ): Promise<APIGatewayProxyResult> => {
   try {
     const prisma = await getPrismaClient();
-    const body = JSON.parse(event.body || '{}');
-    const { flightId } = body;
-
+    const flightId = event.pathParameters?.flightId;
+    
     if (!flightId) {
       return {
         statusCode: 400,
@@ -28,6 +26,10 @@ export const handler = async (
         instructor: true,
         aircraft: true,
         school: true,
+        weatherChecks: {
+          orderBy: { checkTime: 'desc' },
+          take: 5, // Last 5 checks
+        },
       },
     });
 
@@ -42,7 +44,6 @@ export const handler = async (
     // Get weather provider
     const providerType = flight.school.weatherProvider || process.env.WEATHER_PROVIDER || 'weatherapi';
     const weatherApiKey = process.env.WEATHER_API_KEY;
-    
     const weatherProvider = getWeatherProvider(providerType, weatherApiKey);
 
     // Fetch current weather
@@ -65,58 +66,60 @@ export const handler = async (
     // Check safety based on student training level
     const safetyResult = checkWeatherSafety(weather, flight.student.trainingLevel);
 
-    // Save weather check to database
-    const weatherCheck = await prisma.weatherCheck.create({
-      data: {
-        flightId: flight.id,
-        location: flight.departureAirport,
-        visibility: weather.visibility,
-        ceiling: weather.ceiling,
-        windSpeed: weather.windSpeed,
-        conditions: weather.conditions,
-        result: safetyResult.safe ? WeatherSafety.SAFE : WeatherSafety.UNSAFE,
-        reasons: safetyResult.reasons,
-        provider,
-        studentTrainingLevel: flight.student.trainingLevel,
-        requiredVisibility: safetyResult.minimums.visibility,
-        requiredCeiling: safetyResult.minimums.ceiling,
-        maxWindSpeed: safetyResult.minimums.maxWind,
-      },
-    });
+    // Get training level minimums
+    const getTrainingLevelMinimums = (level: string) => {
+      switch (level) {
+        case 'EARLY_STUDENT':
+          return { visibility: 10, ceiling: 3000, maxWind: 10 };
+        case 'PRIVATE_PILOT':
+          return { visibility: 3, ceiling: 1000, maxWind: 15 };
+        case 'INSTRUMENT_RATED':
+          return { visibility: 0, ceiling: 0, maxWind: 25 };
+        default:
+          return { visibility: 10, ceiling: 3000, maxWind: 10 };
+      }
+    };
 
-    // If unsafe, update flight status
-    if (!safetyResult.safe) {
-      await prisma.flight.update({
-        where: { id: flightId },
-        data: { status: 'WEATHER_CANCELLED' },
-      });
-    }
+    const minimums = getTrainingLevelMinimums(flight.student.trainingLevel);
 
     return {
       statusCode: 200,
       headers: getCorsHeaders(event),
       body: JSON.stringify({
-        weather: {
+        flight: {
+          id: flight.id,
+          scheduledStart: flight.scheduledStart,
+          departureAirport: flight.departureAirport,
+          student: {
+            name: `${flight.student.firstName} ${flight.student.lastName}`,
+            trainingLevel: flight.student.trainingLevel,
+          },
+        },
+        currentWeather: {
           visibility: weather.visibility,
           ceiling: weather.ceiling,
           windSpeed: weather.windSpeed,
           conditions: weather.conditions,
+          provider,
         },
         safety: {
           safe: safetyResult.safe,
           reasons: safetyResult.reasons,
-          minimums: safetyResult.minimums,
+          minimums,
         },
-        weatherCheck: {
-          id: weatherCheck.id,
-          result: weatherCheck.result,
-          checkTime: weatherCheck.checkTime,
-        },
-        flightStatus: !safetyResult.safe ? 'WEATHER_CANCELLED' : flight.status,
+        historicalChecks: flight.weatherChecks.map(check => ({
+          id: check.id,
+          checkTime: check.checkTime,
+          result: check.result,
+          visibility: check.visibility,
+          ceiling: check.ceiling,
+          windSpeed: check.windSpeed,
+          conditions: check.conditions,
+        })),
       }),
     };
   } catch (error) {
-    console.error('Error checking weather:', error);
+    console.error('Error getting weather briefing:', error);
     return {
       statusCode: 500,
       headers: getCorsHeaders(event),

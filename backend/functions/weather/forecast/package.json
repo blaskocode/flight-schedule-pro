@@ -1,0 +1,9 @@
+{
+  "name": "weather-forecast",
+  "version": "1.0.0",
+  "description": "Get weather forecast for airport",
+  "main": "index.js",
+  "scripts": {},
+  "dependencies": {}
+}
+

@@ -1,0 +1,9 @@
+{
+  "name": "students-list",
+  "version": "1.0.0",
+  "description": "List all students",
+  "main": "index.js",
+  "scripts": {},
+  "dependencies": {}
+}
+

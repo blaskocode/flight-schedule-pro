@@ -1,0 +1,9 @@
+{
+  "name": "schools-list",
+  "version": "1.0.0",
+  "description": "List all schools",
+  "main": "index.js",
+  "scripts": {},
+  "dependencies": {}
+}
+

@@ -1,6 +1,6 @@
 import { EventBridgeEvent } from 'aws-lambda';
 import { PrismaClient, FlightStatus, WeatherSafety } from '@prisma/client';
-import { prisma } from '../../../shared/db';
+import { getPrismaClient } from '../../../shared/db';
 import { getWeatherProvider, checkWeatherSafety } from '../../../shared/weather';
 import { generateObject } from 'ai';
 import { openai } from '@ai-sdk/openai';
@@ -15,6 +15,7 @@ export const handler = async (
   console.log('Hourly weather check job started');
 
   try {
+    const prisma = await getPrismaClient();
     // Get current time and 24 hours from now
     const now = new Date();
     const next24Hours = new Date(now.getTime() + 24 * 60 * 60 * 1000);
