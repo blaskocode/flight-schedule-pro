@@ -18,8 +18,14 @@ export default function AuthGuard({ children }: AuthGuardProps) {
 
   async function checkAuth() {
     try {
-      await getSession();
-      setIsAuthenticated(true);
+      const session = await getSession();
+      // Verify session exists and has valid tokens
+      if (session && session.getIdToken() && session.getAccessToken()) {
+        setIsAuthenticated(true);
+      } else {
+        setIsAuthenticated(false);
+        router.push('/login');
+      }
     } catch (error) {
       setIsAuthenticated(false);
       router.push('/login');

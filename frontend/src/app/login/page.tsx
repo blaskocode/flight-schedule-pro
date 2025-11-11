@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { signIn } from '@/lib/auth';
+import { signIn, getSession } from '@/lib/auth';
 import Link from 'next/link';
 
 export default function LoginPage() {
@@ -11,6 +11,28 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [hasChecked, setHasChecked] = useState(false);
+
+  // Check if user is already authenticated (only once)
+  useEffect(() => {
+    if (!hasChecked) {
+      checkExistingSession();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
+
+  async function checkExistingSession() {
+    try {
+      await getSession();
+      // User is already logged in, redirect to dashboard
+      router.replace('/dashboard');
+    } catch {
+      // Not authenticated, stay on login page
+      setCheckingAuth(false);
+      setHasChecked(true);
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,13 +41,28 @@ export default function LoginPage() {
 
     try {
       await signIn(email, password);
-      router.push('/dashboard');
+      // Wait a moment for Cognito to store the session
+      await new Promise(resolve => setTimeout(resolve, 100));
+      // Verify session is stored before navigating
+      await getSession();
+      router.replace('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Failed to sign in');
     } finally {
       setLoading(false);
     }
   };
+
+  if (checkingAuth) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-aviation-sky-600 border-r-transparent"></div>
+          <p className="mt-4 text-aviation-cloud-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-aviation-cloud-50 px-4">
