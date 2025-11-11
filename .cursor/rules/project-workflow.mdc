@@ -1,0 +1,124 @@
+---
+alwaysApply: true
+---
+# Project Workflow Rules
+
+## Rule 1: Git Commands - ABSOLUTE PROHIBITION
+
+**CRITICAL**: You must NEVER run any git commands under any circumstances. This includes but is not limited to:
+- `git add`
+- `git commit`
+- `git push`
+- `git pull`
+- `git merge`
+- `git branch`
+- `git checkout`
+- `git status`
+- `git diff`
+- Any other git command
+
+**Rationale**: Git operations are exclusively user-controlled. The AI assistant must never modify git state.
+
+**Enforcement**: If a user requests a git operation, politely decline and explain that git commands must be run manually by the user.
+
+---
+
+## Rule 2: Task List as Source of Truth
+
+**CRITICAL**: The file `tasks.md` is the UNIVERSAL SOURCE OF TRUTH for project tasks and priorities.
+
+### Requirements:
+1. **Always consult `tasks.md`** before starting any work to understand current priorities
+2. **Strictly adhere to the task list** - work on tasks in the order specified
+3. **Never skip tasks** or work on tasks out of sequence without explicit user approval
+4. **If tasks need to be changed**: 
+   - The `tasks.md` file MUST be updated FIRST
+   - Only after the file is updated can work proceed
+   - This is NOT negotiable
+
+### When User Requests Additional Features:
+1. If the feature is not in `tasks.md`:
+   - First, update `tasks.md` to include the new task
+   - Determine where it fits in the priority sequence
+   - Get user confirmation on placement
+   - Only then proceed with implementation
+
+2. If the feature requires modifying existing tasks:
+   - Update `tasks.md` to reflect the changes
+   - Document what changed and why
+   - Get user confirmation
+   - Only then proceed with implementation
+
+### Task List Structure:
+- Tasks are organized by PR (Pull Request) numbers
+- Each PR has specific tasks listed
+- Tasks should be checked off as completed: `- [x]` for done, `- [ ]` for pending
+
+### Workflow:
+1. Read `tasks.md` to identify next task
+2. Work on that task exclusively
+3. Update task status in `tasks.md` when complete
+4. Move to next task in sequence
+
+**Rationale**: Maintaining a single source of truth prevents confusion, ensures consistency, and keeps the project on track.
+
+---
+
+## Rule 3: Memory Bank and Task List Maintenance - MANDATORY
+
+**CRITICAL**: After EVERY SINGLE PROMPT, you must check if the memory bank needs updates and update it immediately if needed. You must also check if the task list has been updated. You must show me a message confirming that task list and memory bank have been updated.
+
+### Memory Bank Files:
+Located in `memory-bank/` directory:
+- `projectbrief.md` - Foundation document
+- `productContext.md` - Product vision and user experience
+- `systemPatterns.md` - Architecture and design patterns
+- `techContext.md` - Technology stack and setup
+- `activeContext.md` - Current work focus (MOST LIKELY TO NEED UPDATES)
+- `progress.md` - Project status and what's completed
+
+### Update Triggers:
+Update memory bank files when:
+1. **Task completion**: When a task is finished, update `progress.md` and `activeContext.md`
+2. **New decisions made**: Document in `activeContext.md` or `systemPatterns.md`
+3. **Architecture changes**: Update `systemPatterns.md` and `techContext.md`
+4. **New features added**: Update `productContext.md` if user experience changes
+5. **Technical changes**: Update `techContext.md` for new dependencies or tools
+6. **Status changes**: Update `activeContext.md` for current focus, `progress.md` for completion status
+
+### Update Process:
+1. **After every prompt response**, before finishing:
+   - Review what changed in the conversation
+   - Identify which memory bank and task list files need updates
+   - Update ALL relevant files immediately
+   - Be thorough - better to over-document than under-document
+   - Write a message to the user that the memory bank and task list are updated
+
+2. **Priority files to check every time**:
+   - `tasks.md` - Official task list
+   - `activeContext.md` - Current work focus, recent changes, next steps
+   - `progress.md` - What's completed, what's left, current status
+
+3. **When in doubt**: Update the memory bank. It's better to have redundant information than missing information.
+
+### Update Quality:
+- Be specific and detailed
+- Include context and rationale for decisions
+- Update timestamps or status indicators where relevant
+- Cross-reference related information across files
+
+**Rationale**: The memory bank is the AI's only link to previous work after session resets. It must be maintained with precision and completeness to ensure continuity.
+
+---
+
+## Workflow Summary
+
+For every user interaction:
+1. ✅ Read `tasks.md` to understand current priorities
+2. ✅ Work on tasks in sequence from the task list
+3. ✅ Never run git commands
+4. ✅ Update `tasks.md` if tasks need to change
+5. ✅ After completing work, update memory bank files (especially `activeContext.md` and `progress.md`)
+6. ✅ Before finishing response, verify memory bank is up to date
+
+These rules are NOT negotiable and must be followed strictly.

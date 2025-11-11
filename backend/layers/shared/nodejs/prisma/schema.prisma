@@ -1,0 +1,176 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-1.0.x"] // Lambda compatibility
+  output = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model School {
+  id              String    @id @default(cuid())
+  name            String
+  airportCode     String    // "KAUS"
+  timezone        String    // "America/Chicago"
+  weatherProvider String    @default("weatherapi") // "weatherapi" or "faa"
+  createdAt       DateTime  @default(now())
+  
+  students    Student[]
+  instructors Instructor[]
+  aircraft    Aircraft[]
+  flights     Flight[]
+}
+
+enum TrainingLevel {
+  EARLY_STUDENT      // 0-20 hours
+  PRIVATE_PILOT      // Licensed VFR
+  INSTRUMENT_RATED   // Licensed IFR
+}
+
+model Student {
+  id            String        @id @default(cuid())
+  schoolId      String
+  email         String        @unique
+  firstName     String
+  lastName      String
+  cognitoId     String        @unique  // AWS Cognito User ID
+  trainingLevel TrainingLevel @default(EARLY_STUDENT)
+  totalHours    Float         @default(0)
+  availability  Json          // Weekly schedule
+  createdAt     DateTime      @default(now())
+  
+  school              School              @relation(fields: [schoolId], references: [id])
+  flights             Flight[]
+  rescheduleRequests  RescheduleRequest[]
+  
+  @@index([email])
+  @@index([cognitoId])
+}
+
+model Instructor {
+  id           String   @id @default(cuid())
+  schoolId     String
+  email        String   @unique
+  firstName    String
+  lastName     String
+  cognitoId    String   @unique
+  availability Json     // Weekly schedule
+  createdAt    DateTime @default(now())
+  
+  school  School   @relation(fields: [schoolId], references: [id])
+  flights Flight[]
+  
+  @@index([email])
+}
+
+model Aircraft {
+  id          String   @id @default(cuid())
+  schoolId    String
+  tailNumber  String   @unique  // "N12345"
+  model       String              // "Cessna 172"
+  available   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  
+  school  School   @relation(fields: [schoolId], references: [id])
+  flights Flight[]
+  
+  @@index([tailNumber])
+}
+
+enum FlightStatus {
+  SCHEDULED
+  COMPLETED
+  WEATHER_CANCELLED
+  RESCHEDULED
+}
+
+model Flight {
+  id               String       @id @default(cuid())
+  schoolId         String
+  studentId        String
+  instructorId     String
+  aircraftId       String
+  scheduledStart   DateTime
+  scheduledEnd     DateTime
+  departureAirport String       // "KAUS"
+  status           FlightStatus @default(SCHEDULED)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  
+  school             School              @relation(fields: [schoolId], references: [id])
+  student            Student             @relation(fields: [studentId], references: [id])
+  instructor         Instructor          @relation(fields: [instructorId], references: [id])
+  aircraft           Aircraft            @relation(fields: [aircraftId], references: [id])
+  weatherChecks      WeatherCheck[]
+  rescheduleRequests RescheduleRequest[]
+  
+  @@index([scheduledStart])
+  @@index([status])
+  @@index([studentId])
+}
+
+enum WeatherSafety {
+  SAFE
+  UNSAFE
+}
+
+model WeatherCheck {
+  id          String        @id @default(cuid())
+  flightId    String
+  checkTime   DateTime      @default(now())
+  location    String        // Airport code
+  visibility  Float         // Statute miles
+  ceiling     Int?          // Feet AGL
+  windSpeed   Int           // Knots
+  conditions  String        // "Clear", "Rain", etc.
+  result      WeatherSafety
+  reasons     Json          // Array of strings
+  provider    String        // "weatherapi" or "faa"
+  
+  studentTrainingLevel TrainingLevel
+  requiredVisibility   Float
+  requiredCeiling      Int
+  maxWindSpeed         Int
+  
+  createdAt DateTime @default(now())
+  
+  flight Flight @relation(fields: [flightId], references: [id])
+  
+  @@index([flightId])
+  @@index([checkTime])
+}
+
+enum RescheduleStatus {
+  PENDING_STUDENT
+  PENDING_INSTRUCTOR
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+model RescheduleRequest {
+  id                    String           @id @default(cuid())
+  flightId              String
+  studentId             String
+  suggestions           Json             // Array of 3 AI options
+  status                RescheduleStatus @default(PENDING_STUDENT)
+  selectedOption        Int?             // 0, 1, or 2
+  studentConfirmedAt    DateTime?
+  instructorConfirmedAt DateTime?
+  newFlightId           String?
+  expiresAt             DateTime         // 48 hours
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+  
+  flight  Flight  @relation(fields: [flightId], references: [id])
+  student Student @relation(fields: [studentId], references: [id])
+  
+  @@index([status])
+  @@index([flightId])
+  @@index([expiresAt])
+}

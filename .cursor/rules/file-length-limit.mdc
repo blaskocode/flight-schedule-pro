@@ -1,0 +1,158 @@
+---
+alwaysApply: true
+---
+# File Length Limit - 750 Lines Maximum
+
+// Description: Enforce maximum file length of 750 lines for all application files
+// Globs: **/*.{js,jsx,ts,tsx,py,java,go,rb,php,c,cpp,cs,swift,kt}
+
+## Rule Description
+
+**CRITICAL**: No file in the repository should ever exceed 750 lines. This is a hard limit that must be enforced for all files related to running the application.
+
+## Scope
+
+This rule applies to ALL files that are part of the running application:
+- Source code files (`.js`, `.jsx`, `.ts`, `.tsx`, `.py`, `.java`, `.go`, etc.)
+- Configuration files that affect runtime behavior
+- Test files
+- Build scripts
+- Database migration files
+- Any file that executes as part of the application
+
+**This rule does NOT apply to:**
+- Documentation files (`.md`, `.txt`, `.rst`)
+- Generated files
+- Data files (`.json`, `.csv`, `.xml` - unless they are code)
+- Lock files (`package-lock.json`, `yarn.lock`)
+- Large data dumps or seed files (unless they are executable code)
+
+## Enforcement
+
+### Before Creating or Modifying Files
+
+1. **Check current line count**: Before creating or modifying any file, verify it will not exceed 750 lines
+2. **If approaching limit**: If a file is approaching 750 lines (e.g., >700 lines), proactively split it before it exceeds the limit
+3. **If exceeding limit**: If a file exceeds 750 lines, it MUST be split immediately - this is non-negotiable
+
+### Splitting Strategy
+
+When a file exceeds or approaches 750 lines, it must be intelligently split based on:
+
+1. **Functional boundaries**: Split by distinct functions, classes, or modules
+2. **Logical grouping**: Group related functionality together
+3. **Dependency relationships**: Keep dependent code together
+4. **Reusability**: Extract reusable components into separate files
+
+### Splitting Process
+
+1. **Identify split points**: Analyze the file to find natural boundaries (functions, classes, modules)
+2. **Create new files**: Create new files with descriptive names that reflect their purpose
+3. **Update imports/exports**: Ensure all imports and exports are correctly updated
+4. **Check related files**: After splitting, check ALL files that import or depend on the original file:
+   - Update import statements
+   - Verify functionality still works
+   - Check for circular dependencies
+   - Update tests if needed
+5. **Verify functionality**: Ensure the application still runs correctly after the split
+
+### File Naming Conventions
+
+When splitting files, use clear, descriptive names:
+- `originalFile.ts` → `originalFile.ts` (core) + `originalFileUtils.ts` (utilities) + `originalFileTypes.ts` (types)
+- Or: `feature/main.ts` + `feature/utils.ts` + `feature/types.ts`
+- Or: `module/core.ts` + `module/helpers.ts` + `module/constants.ts`
+
+## Examples
+
+### Good: File Under 750 Lines
+```typescript
+// userService.ts (450 lines)
+export class UserService {
+  // ... implementation
+}
+```
+
+### Bad: File Over 750 Lines
+```typescript
+// userService.ts (850 lines) ❌ MUST SPLIT
+export class UserService {
+  // ... too much code
+}
+```
+
+### Good: Split File
+```typescript
+// userService.ts (300 lines) ✅
+import { UserValidator } from './userValidator';
+import { UserRepository } from './userRepository';
+import { UserTypes } from './userTypes';
+
+export class UserService {
+  // Core service logic
+}
+
+// userValidator.ts (200 lines) ✅
+export class UserValidator {
+  // Validation logic
+}
+
+// userRepository.ts (250 lines) ✅
+export class UserRepository {
+  // Data access logic
+}
+
+// userTypes.ts (100 lines) ✅
+export interface UserTypes {
+  // Type definitions
+}
+```
+
+## Refactoring After Split
+
+After splitting a file, you MUST:
+
+1. **Update all imports** in files that used the original file
+2. **Check for broken references** - verify all exports are properly re-exported if needed
+3. **Update tests** - ensure test files import from correct locations
+4. **Check for circular dependencies** - verify no circular imports were introduced
+5. **Update documentation** - if file structure changed significantly
+6. **Verify build** - ensure application still compiles and runs
+
+## AI Instructions
+
+When working with files:
+
+1. **Before editing**: Check the current line count of the file
+2. **During editing**: Monitor line count - if approaching 750, plan the split
+3. **After editing**: If file exceeds 750 lines, immediately split it
+4. **After splitting**: 
+   - Update all related files that import from the split file
+   - Verify the application still works
+   - Run tests if applicable
+   - Document the split in commit message or comments
+
+## Non-Negotiable
+
+This rule is **NOT negotiable**. If a file exceeds 750 lines:
+- It MUST be split immediately
+- Work on the file should pause until the split is complete
+- All related files MUST be checked and updated
+- The application MUST still function correctly after the split
+
+## Rationale
+
+- **Maintainability**: Smaller files are easier to understand and maintain
+- **Readability**: Developers can grasp the full context of a file more easily
+- **Testability**: Smaller, focused files are easier to test
+- **Collaboration**: Reduces merge conflicts and makes code reviews easier
+- **Performance**: Some tools and IDEs perform better with smaller files
+
+## Exceptions
+
+The only exceptions to this rule are:
+- Files explicitly marked as exceptions with a comment: `// FILE_LENGTH_EXCEPTION: [reason]`
+- Files that are auto-generated (but should still be split if possible)
+- Very large data files that are not executable code
+
+Even with exceptions, splitting should be preferred when possible.

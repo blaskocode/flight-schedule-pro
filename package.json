@@ -1,0 +1,38 @@
+{
+  "name": "flight-schedule-pro",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AWS-hosted web application for automatic flight lesson weather monitoring and AI-powered rescheduling",
+  "workspaces": [
+    "frontend",
+    "backend",
+    "infrastructure"
+  ],
+  "scripts": {
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "build:frontend": "npm run build --workspace=frontend",
+    "build:backend": "npm run build --workspace=backend",
+    "deploy:infra": "npm run deploy --workspace=infrastructure",
+    "db:migrate": "npm run migrate --workspace=backend",
+    "db:seed": "npm run seed --workspace=backend",
+    "db:studio": "npm run studio --workspace=backend"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=9.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "."
+  },
+  "keywords": [
+    "flight-scheduling",
+    "aws",
+    "serverless",
+    "ai",
+    "weather-monitoring"
+  ],
+  "author": "",
+  "license": "UNLICENSED"
+}
+
