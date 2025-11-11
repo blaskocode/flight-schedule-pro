@@ -42,7 +42,7 @@ export interface AuthTokens {
   refreshToken: string;
 }
 
-export function signUp(data: SignUpData): Promise<CognitoUser> {
+export function signUp(data: SignUpData): Promise<AuthTokens> {
   return new Promise((resolve, reject) => {
     const attributeList = [
       new CognitoUserAttribute({ Name: 'email', Value: data.email }),
@@ -55,12 +55,35 @@ export function signUp(data: SignUpData): Promise<CognitoUser> {
       data.password,
       attributeList,
       [],
-      (err, result) => {
+      async (err, result) => {
         if (err) {
           reject(err);
           return;
         }
-        resolve(result!.user);
+
+        // Automatically sign in the user after successful signup
+        // Retry with exponential backoff in case Cognito needs a moment to make user available
+        let retries = 3;
+        let delay = 500; // Start with 500ms delay
+        
+        while (retries > 0) {
+          try {
+            // Small delay before first attempt to allow Cognito to process
+            await new Promise(resolve => setTimeout(resolve, delay));
+            const tokens = await signIn(data.email, data.password);
+            resolve(tokens);
+            return;
+          } catch (signInErr: any) {
+            retries--;
+            if (retries === 0) {
+              // If all retries fail, reject with the error
+              reject(signInErr);
+              return;
+            }
+            // Exponential backoff: 500ms, 1000ms, 2000ms
+            delay *= 2;
+          }
+        }
       }
     );
   });

@@ -88,6 +88,15 @@ export class ApiStack extends cdk.Stack {
       code: lambda.Code.fromAsset('../backend/functions/flights/create'),
     });
 
+    // API Info Lambda (root endpoint - no VPC needed, no auth)
+    const apiInfoFn = new lambda.Function(this, 'ApiInfoFunction', {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: 'index.handler',
+      code: lambda.Code.fromAsset('../backend/functions/api-info'),
+      timeout: cdk.Duration.seconds(10),
+      memorySize: 128,
+    });
+
     // AI Reschedule Generate Lambda (needs more memory and OpenAI secret)
     const aiRescheduleFn = new lambda.Function(this, 'AIRescheduleFunction', {
       ...lambdaConfig,
@@ -210,6 +219,12 @@ export class ApiStack extends cdk.Stack {
         allowHeaders: ['Content-Type', 'Authorization'],
       },
     });
+
+    // Root endpoint (API info - no auth required)
+    this.api.root.addMethod(
+      'GET',
+      new apigateway.LambdaIntegration(apiInfoFn)
+    );
 
     // Define API routes
     const weather = this.api.root.addResource('weather');

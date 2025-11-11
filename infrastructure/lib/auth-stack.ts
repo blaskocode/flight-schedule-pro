@@ -1,5 +1,6 @@
 import * as cdk from 'aws-cdk-lib';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { Construct } from 'constructs';
 
 export class AuthStack extends cdk.Stack {
@@ -10,6 +11,15 @@ export class AuthStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
+    // PreSignUp Lambda function to auto-confirm users (skip email verification)
+    const preSignUpFn = new lambda.Function(this, 'PreSignUpFunction', {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: 'index.handler',
+      code: lambda.Code.fromAsset('../backend/functions/cognito-pre-signup'),
+      timeout: cdk.Duration.seconds(10),
+      memorySize: 128,
+    });
+
     // Cognito User Pool
     this.userPool = new cognito.UserPool(this, 'UserPool', {
       userPoolName: 'flight-schedule-pro-users',
@@ -17,9 +27,7 @@ export class AuthStack extends cdk.Stack {
       signInAliases: {
         email: true,
       },
-      autoVerify: {
-        email: true,
-      },
+      // Email verification disabled - PreSignUp Lambda will auto-confirm users
       passwordPolicy: {
         minLength: 8,
         requireLowercase: true,
@@ -28,6 +36,10 @@ export class AuthStack extends cdk.Stack {
         requireSymbols: false,
       },
       removalPolicy: cdk.RemovalPolicy.DESTROY, // Change for production
+      // Add PreSignUp trigger to auto-confirm users without email verification
+      lambdaTriggers: {
+        preSignUp: preSignUpFn,
+      },
     });
 
     // User Pool Client

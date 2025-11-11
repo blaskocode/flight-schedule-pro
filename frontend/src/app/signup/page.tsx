@@ -16,7 +16,6 @@ export default function SignUpPage() {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -48,37 +47,13 @@ export default function SignUpPage() {
         firstName: formData.firstName,
         lastName: formData.lastName,
       });
-      setSuccess(true);
-      setTimeout(() => {
-        router.push('/login');
-      }, 2000);
+      // User is automatically signed in, redirect to dashboard
+      router.push('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Failed to sign up');
-    } finally {
       setLoading(false);
     }
   };
-
-  if (success) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-aviation-cloud-50 px-4">
-        <div className="w-full max-w-md">
-          <div className="rounded-lg bg-white p-8 shadow-lg text-center">
-            <div className="mb-4 text-6xl">✉️</div>
-            <h2 className="text-2xl font-bold text-aviation-sky-700 mb-2">
-              Check your email!
-            </h2>
-            <p className="text-aviation-cloud-600">
-              We've sent a verification link to {formData.email}
-            </p>
-            <p className="mt-4 text-sm text-aviation-cloud-500">
-              Redirecting to login...
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-aviation-cloud-50 px-4 py-12">
